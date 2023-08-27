@@ -1,11 +1,15 @@
 package com.fronchak.petshopv1.services;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,6 +21,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.fronchak.petshopv1.builders.ClientBuilder;
@@ -26,6 +32,7 @@ import com.fronchak.petshopv1.dtos.client.ClientDTO;
 import com.fronchak.petshopv1.dtos.client.ClientInsertDTO;
 import com.fronchak.petshopv1.dtos.client.ClientUpdateDTO;
 import com.fronchak.petshopv1.entities.Client;
+import com.fronchak.petshopv1.exceptions.DatabaseException;
 import com.fronchak.petshopv1.exceptions.ResourceNotFoundException;
 import com.fronchak.petshopv1.repositories.ClientRepository;
 
@@ -42,6 +49,7 @@ public class ClientServiceTest {
 	
 	private Long existingId;
 	private Long nonExistingId;
+	private Long nonDeletableId;
 	
 	private Long clientId;
 	private String clientName = "Maria Clara";
@@ -53,8 +61,9 @@ public class ClientServiceTest {
 	void setUp() {
 		existingId = 10L;
 		nonExistingId = 20L;
+		nonDeletableId = 30L;
 		
-		clientId = 30L;
+		clientId = 40L;
 		clientName = "Maria Clara";
 		clientEmail = "mariaclara@gmail.com";
 		
@@ -74,6 +83,9 @@ public class ClientServiceTest {
 		when(clientRepository.getReferenceById(existingId)).thenReturn(otherClient);
 		doThrow(EntityNotFoundException.class).when(clientRepository).getReferenceById(nonExistingId);
 		when(clientRepository.save(any())).thenReturn(client);
+		doThrow(EmptyResultDataAccessException.class).when(clientRepository).deleteById(nonExistingId);
+		doThrow(DataIntegrityViolationException.class).when(clientRepository).deleteById(nonDeletableId);
+		doNothing().when(clientRepository).deleteById(existingId);
 	}
 	
 	@Test
@@ -147,5 +159,28 @@ public class ClientServiceTest {
 		assertThrows(ResourceNotFoundException.class, () -> {
 			clientService.update(new ClientUpdateDTO(), nonExistingId);
 		});
+		verify(clientRepository, never()).save(any());
+	}
+	
+	@Test
+	public void deleteShouldThrowResourceNotFoundExceptionWhenIdDoesNotExists() {
+		assertThrows(ResourceNotFoundException.class, () -> {
+			clientService.deleteById(nonExistingId);
+		});
+		verify(clientRepository, times(1)).deleteById(nonExistingId);
+	}
+	
+	@Test
+	public void deleteShouldThrowDatabaseExceptionWhenIdCannotBeDeleted() {
+		assertThrows(DatabaseException.class, () -> {
+			clientService.deleteById(nonDeletableId);
+		});
+		verify(clientRepository, times(1)).deleteById(nonDeletableId);
+	}
+	
+	@Test
+	public void deleteShouldNotThrowAnExceptionWhenClientCanBeDeleted() {
+		assertDoesNotThrow(() -> clientService.deleteById(existingId));
+		verify(clientRepository, times(1)).deleteById(existingId);
 	}
 }

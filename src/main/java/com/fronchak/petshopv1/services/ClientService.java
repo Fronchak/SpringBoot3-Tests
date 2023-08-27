@@ -1,6 +1,9 @@
 package com.fronchak.petshopv1.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import com.fronchak.petshopv1.dtos.client.ClientDTO;
@@ -8,6 +11,7 @@ import com.fronchak.petshopv1.dtos.client.ClientInputDTO;
 import com.fronchak.petshopv1.dtos.client.ClientInsertDTO;
 import com.fronchak.petshopv1.dtos.client.ClientUpdateDTO;
 import com.fronchak.petshopv1.entities.Client;
+import com.fronchak.petshopv1.exceptions.DatabaseException;
 import com.fronchak.petshopv1.exceptions.ResourceNotFoundException;
 import com.fronchak.petshopv1.repositories.ClientRepository;
 
@@ -19,6 +23,7 @@ public class ClientService {
 	@Autowired
 	private ClientRepository clientRepository;
 	
+	@Transactional(readOnly = true)
 	public ClientDTO findById(Long id) {
 		Client client = clientRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Client not found"));
@@ -31,6 +36,7 @@ public class ClientService {
 				client.getEmail());
 	}
 	
+	@Transactional
 	public ClientDTO save(ClientInsertDTO clientInsertDTO) {
 		Client client = new Client();
 		copyToClient(clientInsertDTO, client);
@@ -43,6 +49,7 @@ public class ClientService {
 		client.setEmail(clientInputDTO.getEmail());
 	}
 	
+	@Transactional
 	public ClientDTO update(ClientUpdateDTO clientUpdateDTO, Long id) {
 		try {
 			Client client = clientRepository.getReferenceById(id);
@@ -52,6 +59,18 @@ public class ClientService {
 		}
 		catch(EntityNotFoundException e) {
 			throw new ResourceNotFoundException("Client not found");
+		}
+	}
+	
+	public void deleteById(Long id) {
+		try {
+			clientRepository.deleteById(id);
+		}
+		catch(EmptyResultDataAccessException e) {
+			throw new ResourceNotFoundException("Client not found");
+		}
+		catch(DataIntegrityViolationException e) {
+			throw new DatabaseException("Client cannot be deleted");
 		}
 	}
 }
