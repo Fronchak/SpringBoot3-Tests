@@ -8,4 +8,5 @@ import com.fronchak.petshopv1.entities.Client;
 @Repository
 public interface ClientRepository extends JpaRepository<Client, Long> {
 
+	Client findByEmail(String email);
 }
