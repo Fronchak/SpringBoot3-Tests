@@ -1,10 +1,14 @@
 package com.fronchak.petshopv1.controllers;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -88,6 +92,8 @@ public class ClientControllerTest {
 				.get();
 				
 		doThrow(ResourceNotFoundException.class).when(clientService).findById(nonExistingId);
+		doThrow(ResourceNotFoundException.class).when(clientService).update(any(), eq(nonExistingId));
+		when(clientService.update(any(), eq(existingId))).thenReturn(clientDTO);
 		when(clientService.findById(existingId)).thenReturn(clientDTO);
 		when(clientService.save(any())).thenReturn(clientDTO);
 	}
@@ -97,6 +103,16 @@ public class ClientControllerTest {
 		ResultActions result = mockMvc.perform(get("/clients/{id}", nonExistingId)
 				.accept(MediaType.APPLICATION_JSON));
 		result.andExpect(status().isNotFound());
+	}
+	
+	@Test
+	public void findByIdShouldReturnBadRequestWhenIdIsNotANumber() throws Exception {
+		ResultActions result = mockMvc.perform(get("/clients/{id}", "AA")
+				.accept(MediaType.APPLICATION_JSON));
+
+		result.andExpect(status().isBadRequest());
+		result.andExpect(jsonPath("$.message").value("Id must be a number"));
+		verify(clientService, never()).findById(any());
 	}
 	
 	@Test
@@ -167,7 +183,7 @@ public class ClientControllerTest {
 		
 		result.andExpect(status().isUnprocessableEntity());
 		result.andExpect(jsonPath("$.errors[0].fieldName").value("email"));
-		result.andExpect(jsonPath("$.errors[0].message").value("Email is required"));
+		result.andExpect(jsonPath("$.errors[0].message").value("Invalid email"));
 	}
 	
 	@Test
@@ -200,5 +216,178 @@ public class ClientControllerTest {
 		result.andExpect(status().isUnprocessableEntity());
 		result.andExpect(jsonPath("$.errors[0].fieldName").value("email"));
 		result.andExpect(jsonPath("$.errors[0].message").value("Email is already been used"));
+	}
+	
+	@Test
+	public void saveShouldReturnSuccessAndReturnDTOWhenAllDataIsValid() throws Exception {
+		String body = mapper.writeValueAsString(clientInsertDTO);
+		
+		ResultActions result = mockMvc.perform(post("/clients")
+				.accept(MediaType.APPLICATION_JSON)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(body));
+		
+		result.andExpect(status().isOk());
+		result.andExpect(jsonPath("$.id").value(clientIdOutput));
+		result.andExpect(jsonPath("$.name").value(clientNameOutput));
+		result.andExpect(jsonPath("$.email").value(clientEmailOutput));
+	}
+	
+	@Test
+	public void updateShouldReturnUnprocessableWhenNameIsNull() throws Exception {
+		clientUpdateDTO.setName(null);
+		String body = mapper.writeValueAsString(clientUpdateDTO);
+	
+		ResultActions result = mockMvc.perform(put("/clients/{id}", existingId)
+				.accept(MediaType.APPLICATION_JSON)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(body));
+		
+		result.andExpect(status().isUnprocessableEntity());
+		result.andExpect(jsonPath("$.errors[0].fieldName").value("name"));
+		result.andExpect(jsonPath("$.errors[0].message").value("Name is required"));
+	}
+	
+	@Test
+	public void updateShouldReturnUnprocessableWhenNameIsBlank() throws Exception {
+		clientUpdateDTO.setName("         ");
+		String body = mapper.writeValueAsString(clientUpdateDTO);
+	
+		ResultActions result = mockMvc.perform(put("/clients/{id}", existingId)
+				.accept(MediaType.APPLICATION_JSON)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(body));
+		
+		result.andExpect(status().isUnprocessableEntity());
+		result.andExpect(jsonPath("$.errors[0].fieldName").value("name"));
+		result.andExpect(jsonPath("$.errors[0].message").value("Name is required"));
+	}
+	
+	@Test
+	public void updateShouldReturnUnprocessableWhenEmailIsNull() throws Exception {
+		clientUpdateDTO.setEmail(null);
+		String body = mapper.writeValueAsString(clientUpdateDTO);
+		
+		ResultActions result = mockMvc.perform(put("/clients/{id}", existingId)
+				.accept(MediaType.APPLICATION_JSON)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(body));
+		
+		result.andExpect(status().isUnprocessableEntity());
+		result.andExpect(jsonPath("$.errors[0].fieldName").value("email"));
+		result.andExpect(jsonPath("$.errors[0].message").value("Email is required"));
+	}
+	
+	@Test
+	public void updateShouldReturnUnprocessableWhenEmailIsBlank() throws Exception {
+		clientUpdateDTO.setEmail("   ");
+		String body = mapper.writeValueAsString(clientUpdateDTO);
+		
+		ResultActions result = mockMvc.perform(put("/clients/{id}", existingId)
+				.accept(MediaType.APPLICATION_JSON)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(body));
+		
+		result.andExpect(status().isUnprocessableEntity());
+		result.andExpect(jsonPath("$.errors[0].fieldName").value("email"));
+		result.andExpect(jsonPath("$.errors[0].message").value("Invalid email"));
+	}
+	
+	@Test
+	public void updateShouldReturnUnprocessableWhenEmailIsNotValid() throws Exception {
+		clientUpdateDTO.setEmail("ana@gmail.");
+		String body = mapper.writeValueAsString(clientUpdateDTO);
+		
+		ResultActions result = mockMvc.perform(put("/clients/{id}", existingId)
+				.accept(MediaType.APPLICATION_JSON)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(body));
+		
+		result.andExpect(status().isUnprocessableEntity());
+		result.andExpect(jsonPath("$.errors[0].fieldName").value("email"));
+		result.andExpect(jsonPath("$.errors[0].message").value("Invalid email"));
+	}
+	
+	@Test
+	public void updateShouldReturnUnprocessableEntityWhenEmailIsAlreadyUsedByOtherClient() throws Exception {
+		Client client = ClientBuilder.client()
+				.withId(1000L)
+				.withEmail(existingEmail)
+				.get();
+		when(clientRepository.findByEmail(existingEmail)).thenReturn(client);
+		clientUpdateDTO.setEmail(existingEmail);
+		String body = mapper.writeValueAsString(clientUpdateDTO);
+		
+		ResultActions result = mockMvc.perform(put("/clients/{id}", existingId)
+				.accept(MediaType.APPLICATION_JSON)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(body));
+		
+		result.andExpect(status().isUnprocessableEntity());
+		result.andExpect(jsonPath("$.errors[0].fieldName").value("email"));
+		result.andExpect(jsonPath("$.errors[0].message").value("Email is already been used"));
+		verify(clientService, never()).update(any(), any());
+	}
+	
+	@Test
+	public void updateShouldReturnNotFoundWhenDataIsValidButIdDoesNotExists() throws Exception {
+		String body = mapper.writeValueAsString(clientUpdateDTO);
+		
+		ResultActions result = mockMvc.perform(put("/clients/{id}", nonExistingId)
+				.accept(MediaType.APPLICATION_JSON)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(body));
+		
+		result.andExpect(status().isNotFound());
+	}
+	
+	@Test
+	public void updateShouldReturnBadRequestWhenDataIsValidButIdIsNotANumber() throws Exception {
+		String body = mapper.writeValueAsString(clientUpdateDTO);
+		
+		ResultActions result = mockMvc.perform(put("/clients/{id}", "A")
+				.accept(MediaType.APPLICATION_JSON)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(body));
+		
+		result.andExpect(status().isBadRequest());
+		result.andExpect(jsonPath("$.message").value("Id must be a number"));
+		verify(clientService, never()).update(any(), any());
+	}
+	
+	@Test
+	public void updateShouldReturnSuccessAndClientDTOWhenDataIsValidAndIdExists() throws Exception {
+		String body = mapper.writeValueAsString(clientUpdateDTO);
+		
+		ResultActions result = mockMvc.perform(put("/clients/{id}", existingId)
+				.accept(MediaType.APPLICATION_JSON)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(body));
+		
+		result.andExpect(status().isOk());
+		result.andExpect(jsonPath("$.id").value(clientIdOutput));
+		result.andExpect(jsonPath("$.name").value(clientNameOutput));
+		result.andExpect(jsonPath("$.email").value(clientEmailOutput));
+	}
+	
+	@Test
+	public void updateShouldReturnSuccessAndClientDTOWhenUpdateUsingTheSameEmail() throws Exception {
+		Client client = ClientBuilder.client()
+				.withId(existingId)
+				.withEmail(existingEmail)
+				.get();
+		when(clientRepository.findByEmail(existingEmail)).thenReturn(client);
+		clientUpdateDTO.setEmail(existingEmail);
+		String body = mapper.writeValueAsString(clientUpdateDTO);
+		
+		ResultActions result = mockMvc.perform(put("/clients/{id}", existingId)
+				.accept(MediaType.APPLICATION_JSON)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(body));
+		
+		result.andExpect(status().isOk());
+		result.andExpect(jsonPath("$.id").value(clientIdOutput));
+		result.andExpect(jsonPath("$.name").value(clientNameOutput));
+		result.andExpect(jsonPath("$.email").value(clientEmailOutput));
 	}
 }

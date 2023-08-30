@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
+import com.fronchak.petshopv1.exceptions.PathParamNotANumberException;
 import com.fronchak.petshopv1.exceptions.ResourceNotFoundException;
 
 @RestControllerAdvice
@@ -46,6 +47,15 @@ public class CustomizeResponseEntityExceptionResponse {
 		
 		return ResponseEntity.status(status).body(response);
 	}
+	
+	@ExceptionHandler(PathParamNotANumberException.class)
+	public ResponseEntity<ExceptionResponse> handlePathParamNotANumberException(PathParamNotANumberException e, WebRequest request) {
+		HttpStatus status = HttpStatus.BAD_REQUEST;
+		ExceptionResponse response = makeResponse(
+				new ExceptionResponse(), e, request, status, "Bad request");
+		return ResponseEntity.status(status).body(response);
+	}
+	
 	/*
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ExceptionResponse> handleException(Exception e, WebRequest request) {

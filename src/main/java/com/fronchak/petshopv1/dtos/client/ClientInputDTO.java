@@ -11,7 +11,6 @@ public class ClientInputDTO	 {
 	private String name;
 	
 	@NotNull(message = "Email is required")
-	@NotBlank(message = "Email is required")
 	@Email(message = "Invalid email", 
 		regexp = "^\\w+([\\.-]?\\w+)*@\\w+([\\.-]?\\w+)*(\\.\\w{2,3})+$")
 	private String email;

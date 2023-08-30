@@ -5,12 +5,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fronchak.petshopv1.dtos.client.ClientDTO;
 import com.fronchak.petshopv1.dtos.client.ClientInsertDTO;
+import com.fronchak.petshopv1.dtos.client.ClientUpdateDTO;
+import com.fronchak.petshopv1.exceptions.PathParamNotANumberException;
 import com.fronchak.petshopv1.services.ClientService;
 
 import jakarta.validation.Valid;
@@ -34,13 +37,20 @@ public class ClientController {
 			return Long.parseLong(idStr);
 		}
 		catch(Exception e) {
-			throw new RuntimeException();
+			throw new PathParamNotANumberException("Id must be a number");
 		}
 	}
 	
 	@PostMapping
 	public ResponseEntity<ClientDTO> save(@Valid @RequestBody ClientInsertDTO clientInsertDTO) {
+		ClientDTO clientDTO = clientService.save(clientInsertDTO);
+		return ResponseEntity.ok().body(clientDTO);
+	}
 	
-		return null;
+	@PutMapping(value = "/{id}")
+	public ResponseEntity<ClientDTO> update(@Valid @RequestBody ClientUpdateDTO clientUpdateDTO, @PathVariable String id) {
+		Long entityId = parsePath(id);
+		ClientDTO clientDTO = clientService.update(clientUpdateDTO, entityId);
+		return ResponseEntity.ok().body(clientDTO);
 	}
 }
