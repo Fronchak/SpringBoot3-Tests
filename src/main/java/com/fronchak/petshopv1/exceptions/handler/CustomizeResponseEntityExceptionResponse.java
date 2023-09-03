@@ -56,12 +56,12 @@ public class CustomizeResponseEntityExceptionResponse {
 		return ResponseEntity.status(status).body(response);
 	}
 	
-	/*
+	
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ExceptionResponse> handleException(Exception e, WebRequest request) {
 		HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
 		ExceptionResponse response = makeResponse(new ExceptionResponse(), e, request, status, "Internal Server Error");
 		return ResponseEntity.status(status).body(response);
 	}
-	*/
+	
 }

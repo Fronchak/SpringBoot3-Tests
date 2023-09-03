@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
@@ -33,8 +34,11 @@ import com.fronchak.petshopv1.entities.Client;
 import com.fronchak.petshopv1.exceptions.ResourceNotFoundException;
 import com.fronchak.petshopv1.repositories.ClientRepository;
 import com.fronchak.petshopv1.services.ClientService;
+import com.fronchak.petshopv1.services.JwtService;
+import com.fronchak.petshopv1.services.UserService;
 
 @WebMvcTest(ClientController.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class ClientControllerTest {
 
 	@Autowired
@@ -65,6 +69,12 @@ public class ClientControllerTest {
 	
 	@MockBean
 	private ClientRepository clientRepository;
+	
+	@MockBean
+	private JwtService jwtService;
+	
+	@MockBean
+	private UserService userService;
 	
 	@BeforeEach
 	void setUp() {

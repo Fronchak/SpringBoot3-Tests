@@ -64,6 +64,8 @@ public class ClientService {
 	
 	public void deleteById(Long id) {
 		try {
+			clientRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Client not found"));
 			clientRepository.deleteById(id);
 		}
 		catch(EmptyResultDataAccessException e) {
